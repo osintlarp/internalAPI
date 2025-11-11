@@ -1,0 +1,10 @@
+{
+  "577389bce12d6560ffd3eaa053e16b9ea41d70c9958d14a14ff72b48878c9a84": {
+    "name": "GetUserList",
+    "action": "list_users"
+  },
+  "f8b0a2c26a9d97d6e76b36af6a1d5fa7fcedab03a5f4c0cb854d56d601b9e111": {
+    "name": "GetUserMap",
+    "action": "get_user_map"
+  }
+}
