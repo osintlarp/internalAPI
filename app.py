@@ -45,11 +45,17 @@ def graphql_persisted_query():
         base_path = "/var/www/users"
         if not os.path.exists(base_path):
             return jsonify({"errors": [{"message": "Directory not found"}]}), 404
-        files = [
-            f[:-5] for f in os.listdir(base_path)
-            if os.path.isfile(os.path.join(base_path, f)) and f.endswith(".json")
-        ]
-        return jsonify({"data": {"GetUserList": files}})
+        user_list = []
+        for f in os.listdir(base_path):
+            if os.path.isfile(os.path.join(base_path, f)) and f.endswith(".json"):
+                try:
+                    with open(os.path.join(base_path, f)) as jf:
+                        data = json.load(jf)
+                        if "username" in data:
+                            user_list.append(data["username"])
+                except:
+                    continue
+        return jsonify({"data": {"GetUserList": user_list}})
 
     if action == "get_user_map":
         include_api = variables.get("input", {}).get("includeAPI", True)
@@ -65,6 +71,6 @@ def graphql_persisted_query():
         return jsonify({"data": {"GetUserMap": data}})
 
     return jsonify({"errors": [{"message": "Unknown action"}]}), 400
-
+    
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
