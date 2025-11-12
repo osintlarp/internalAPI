@@ -29,6 +29,7 @@ def graphql_persisted_query():
     extensions = body.get("extensions", {}).get("persistedQuery", {})
     sha = extensions.get("sha256Hash")
     op_name = body.get("operationName")
+    variables = body.get("variables", {})
     queries = load_persisted_queries()
 
     if not sha or sha not in queries:
@@ -44,14 +45,23 @@ def graphql_persisted_query():
         base_path = "/var/www/users"
         if not os.path.exists(base_path):
             return jsonify({"errors": [{"message": "Directory not found"}]}), 404
-        files = [f for f in os.listdir(base_path) if os.path.isfile(os.path.join(base_path, f)) and not f.endswith(".json")]
+        files = [
+            f[:-5] for f in os.listdir(base_path)
+            if os.path.isfile(os.path.join(base_path, f)) and f.endswith(".json")
+        ]
         return jsonify({"data": {"GetUserList": files}})
 
     if action == "get_user_map":
-        if not os.path.exists("/root/map/user_map.json"):
+        include_api = variables.get("input", {}).get("includeAPI", True)
+        map_path = "/root/map/user_map.json"
+        if not os.path.exists(map_path):
             return jsonify({"errors": [{"message": "File not found"}]}), 404
-        with open("/root/map/user_map.json") as f:
+        with open(map_path) as f:
             data = json.load(f)
+        if not include_api:
+            for key in data:
+                if "api_key" in data[key]:
+                    del data[key]["api_key"]
         return jsonify({"data": {"GetUserMap": data}})
 
     return jsonify({"errors": [{"message": "Unknown action"}]}), 400
