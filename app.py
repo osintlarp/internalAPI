@@ -19,7 +19,7 @@ def graphql_persisted_query():
     header_decode = request.headers.get("x-decode-token")
     header_auth = request.headers.get("authorization")
     if header_decode != DECODE_TOKEN or header_auth != AUTH_TOKEN:
-        return jsonify({"errors": [{"message": "Invalid or missing tokens"}]}), 401
+        return jsonify({"data":null,"errors":[{"message":"unauthorized"}]}), 401
 
     try:
         body = request.get_json(force=True)
