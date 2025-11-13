@@ -71,6 +71,59 @@ def graphql_persisted_query():
         return jsonify({"data": {"GetUserMap": data}})
 
     return jsonify({"errors": [{"message": "Unknown action"}]}), 400
+
+@app.route("/v1/user/<user_id>", methods=["POST"])
+def get_user_info(user_id):
+    header_decode = request.headers.get("x-decode-token")
+    header_auth = request.headers.get("authorization")
+    if header_decode != DECODE_TOKEN or header_auth != AUTH_TOKEN:
+        return jsonify({"errors": [{"message": "Invalid or missing tokens"}]}), 401
+
+    try:
+        body = request.get_json(force=True)
+    except:
+        return jsonify({"errors": [{"message": "Invalid JSON body"}]}), 400
+
+    extensions = body.get("extensions", {}).get("persistedQuery", {})
+    sha = extensions.get("sha256Hash")
+    op_name = body.get("operationName")
+    variables = body.get("variables", {})
+    queries = load_persisted_queries()
+
+    if not sha or sha not in queries:
+        return jsonify({"errors": [{"message": "Unknown or missing persisted query"}]}), 400
+
+    query_data = queries[sha]
+    if op_name != query_data.get("name") or query_data.get("action") != "get_user_info":
+        return jsonify({"errors": [{"message": "Operation mismatch"}]}), 400
+
+    input_data = variables.get("input", {})
+    include_api = input_data.get("includeAPI", False)
+    include_sessions = input_data.get("includeSessions", False)
+    include_useragent = input_data.get("includeUserAgent", False)
+    include_permissions = input_data.get("includePermissions", True)
+
+    file_path = f"/var/www/users/{user_id}.json"
+    if not os.path.exists(file_path):
+        return jsonify({"errors": [{"message": "User not found"}]}), 404
+
+    try:
+        with open(file_path) as f:
+            user_data = json.load(f)
+    except Exception as e:
+        return jsonify({"errors": [{"message": f"Failed to load user data: {str(e)}"}]}), 500
+
+    if not include_api and "api_key" in user_data:
+        del user_data["api_key"]
+    if not include_sessions and "session_token" in user_data:
+        del user_data["session_token"]
+    if not include_useragent and "user_agent" in user_data:
+        del user_data["user_agent"]
+    if not include_permissions and "permissions" in user_data:
+        del user_data["permissions"]
+
+    return jsonify({"data": {"GetUserInfo": user_data}})
+
     
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
