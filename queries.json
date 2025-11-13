@@ -6,5 +6,9 @@
   "f8b0a2c26a9d97d6e76b36af6a1d5fa7fcedab03a5f4c0cb854d56d601b9e111": {
     "name": "GetUserMap",
     "action": "get_user_map"
+  },
+  "9f8dbf6ac8d97a912ca41b9bb59df1b682c0ce47473d8452811a3a4b7df13222": {
+    "name": "GetUserInfo",
+    "action": "get_user_info"
   }
 }
