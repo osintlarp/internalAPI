@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request
 from cprint import info, error
 import random, string, json, os
+import hashlib
 
 app = Flask(__name__)
 
@@ -13,6 +14,9 @@ def load_persisted_queries():
         return {}
     with open(QUERY_FILE) as f:
         return json.load(f)
+
+def hash_token(token):
+    return hashlib.sha256(token.encode()).hexdigest()
 
 @app.route("/v1/users", methods=["POST"])
 def graphql_persisted_query():
@@ -115,10 +119,21 @@ def get_user_info(user_id):
 
     if not include_api and "api_key" in user_data:
         del user_data["api_key"]
+
     if not include_sessions and "session_token" in user_data:
         del user_data["session_token"]
+    elif include_sessions and "session_token" in user_data:
+        hashed_sessions = []
+        for s in user_data["session_token"]:
+            s_copy = s.copy()
+            if "session_token" in s_copy:
+                s_copy["session_token"] = hash_token(s_copy["session_token"])
+            hashed_sessions.append(s_copy)
+        user_data["session_token"] = hashed_sessions
+
     if not include_useragent and "user_agent" in user_data:
         del user_data["user_agent"]
+
     if not include_permissions and "permissions" in user_data:
         del user_data["permissions"]
 
