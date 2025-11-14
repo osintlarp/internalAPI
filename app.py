@@ -81,7 +81,7 @@ def get_user_info(user_id):
     header_decode = request.headers.get("x-decode-token")
     header_auth = request.headers.get("authorization")
     if header_decode != DECODE_TOKEN or header_auth != AUTH_TOKEN:
-        return jsonify({"errors": [{"message": "Invalid or missing tokens"}]}), 401
+        return jsonify({"data":null,"errors":[{"message":"unauthorized"}]}), 401
 
     try:
         body = request.get_json(force=True)
@@ -117,19 +117,25 @@ def get_user_info(user_id):
     except Exception as e:
         return jsonify({"errors": [{"message": f"Failed to load user data: {str(e)}"}]}), 500
 
-    if not include_api and "api_key" in user_data:
-        del user_data["api_key"]
+    if "api_key" in user_data:
+        if include_api:
+            user_data["api_key"] = hash_token(user_data["api_key"])
+        else:
+            del user_data["api_key"]
 
-    if not include_sessions and "session_token" in user_data:
-        del user_data["session_token"]
-    elif include_sessions and "session_token" in user_data:
-        hashed_sessions = []
-        for s in user_data["session_token"]:
-            s_copy = s.copy()
-            if "session_token" in s_copy:
-                s_copy["session_token"] = hash_token(s_copy["session_token"])
-            hashed_sessions.append(s_copy)
-        user_data["session_token"] = hashed_sessions
+    if "session_token" in user_data:
+        if include_sessions:
+            processed = []
+            for sess in user_data["session_token"]:
+                s = sess.copy()
+                if "session_token" in s:
+                    s["session_token"] = hash_token(s["session_token"])
+                if not include_useragent and "user_agent" in s:
+                    del s["user_agent"]
+                processed.append(s)
+            user_data["session_token"] = processed
+        else:
+            del user_data["session_token"]
 
     if not include_useragent and "user_agent" in user_data:
         del user_data["user_agent"]
@@ -138,7 +144,6 @@ def get_user_info(user_id):
         del user_data["permissions"]
 
     return jsonify({"data": {"GetUserInfo": user_data}})
-
     
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
